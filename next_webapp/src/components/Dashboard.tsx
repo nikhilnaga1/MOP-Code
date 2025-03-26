@@ -1,8 +1,14 @@
+"use client";
 import { Link } from "@/i18n-navigation";
 import Image from "next/image";
 import mainimage from "../../public/img/mainImage.png";
 import secondimage from "../../public/img/second_image.png";
 import { useTranslations } from "next-intl";
+import { CaseStudy, CATEGORY, SEARCH_MODE, SearchParams } from "@/app/types";
+import { useEffect, useState } from "react";
+import { ArrowLeft, FileText } from "lucide-react";
+import Carousel from "react-multi-carousel";
+import "react-multi-carousel/lib/styles.css";
 
 const style = `
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
@@ -29,14 +35,12 @@ body{
     padding-right: 24px;
     align-items: center;
     
-
 }
 .left-section{
     display: flex;
     gap: 68px;
     align-items: center;
 }
-
 .left-section .logo{
     height: 50px;
     width: 56px;
@@ -64,15 +68,10 @@ body{
     display: flex;
     gap: 27px;
 }
-
-
-
-
 /* ------- */
-
 .hero-section{
     margin-top: 55px;
-    height: 805px;
+    height: auto;
     background: grey;
     overflow: hidden;
 }
@@ -80,16 +79,11 @@ body{
     width: 100%;
     height : 805px;
 }
-
-
-
-
-
-
 .our-vision-section{
     display: flex;
+    background: #2ECC71;
     justify-content: space-between;
-    border: 1px solid black;
+    border: 1px solid white;
     margin-top: 21px;
     .our-vision{
         margin-left: 61px;
@@ -100,7 +94,8 @@ body{
         font-weight: 600;
         letter-spacing: -0.015em;
         text-align: left;
-        color: black;
+        color: white;
+        background: #2ECC71;
     }
     .img-div{
         margin-top: 139px;
@@ -123,14 +118,14 @@ body{
         position: absolute;
         top: -56px;
         right: 0;
-        background-color: #999696;
+        background-color: #000000;
     }
     .img-div:before{
         content: '';
         width: 45px;
         height: 243px;
         position: absolute;
-        background-color: #999696;
+        background-color: #000000;
         left: -46px;
         bottom: -1px;
     }
@@ -143,7 +138,7 @@ body{
         font-family: 'Montserrat';
         font-size: 17px;
         text-align: left;
-        color: black;
+        color: white;
     }
 }
 .case-studies-wrapper{
@@ -176,7 +171,6 @@ color:black;
     max-width: 300px;
     width: 100%;
 }
-
 .card-wrapper .top-image{
     height: 281px;
     padding-left: 64px;
@@ -187,7 +181,6 @@ color:black;
     width: 100%;
     height: 100%;
 }
-
 .recent-case-studies{
     margin-top: 105px;
     margin-left: 80px;
@@ -205,9 +198,7 @@ color:black;
     font-size: 36px;
     font-weight: 400;
     color : black;
-
 }
-
 .sign-up-btn-section{
     display: flex;
     align-items: center;
@@ -228,8 +219,72 @@ color:black;
 .main-wrapper{
     background-color: white;
 }
+.case-study{
+    height: 100%
+}
 `;
+
+const responsive = {
+  superLargeDesktop: {
+    breakpoint: { max: 4000, min: 3000 },
+    items: 5,
+  },
+  desktop: {
+    breakpoint: { max: 3000, min: 1024 },
+    items: 3,
+  },
+  tablet: {
+    breakpoint: { max: 1024, min: 464 },
+    items: 2,
+  },
+  mobile: {
+    breakpoint: { max: 464, min: 0 },
+    items: 1,
+  },
+};
+
 const Dashboard = () => {
+  const [filteredCaseStudies, setFilteredCaseStudies] = useState<CaseStudy[]>(
+    []
+  );
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<
+    CaseStudy | undefined
+  >(undefined);
+
+  useEffect(() => {
+    handleSearch("", SEARCH_MODE.TITLE, CATEGORY.ALL);
+  }, []);
+
+  async function searchUseCases(searchParams: SearchParams) {
+    const response = await fetch("/api/search-use-cases", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(searchParams),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+  const handleSearch = async (
+    searchTerm: string,
+    searchMode: SEARCH_MODE,
+    category: CATEGORY
+  ) => {
+    const res = await searchUseCases({ searchTerm, searchMode, category });
+    console.log("🚀 ~ UseCases ~ res:", res);
+    setFilteredCaseStudies(res?.filteredStudies);
+  };
+  const handleCaseStudyClick = (study: CaseStudy) => {
+    setSelectedCaseStudy(study);
+  };
+  const handleBack = () => {
+    setSelectedCaseStudy(undefined);
+  };
   const navItems = [
     { to: "/about", icon: "/img/about-icon.png", label: "About Us" },
     { to: "/casestudies", icon: "/img/case-icon.png", label: "Case Studies" },
@@ -243,6 +298,28 @@ const Dashboard = () => {
   ];
 
   const t = useTranslations("common");
+
+  if (selectedCaseStudy) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-100 p-8">
+        <button
+          onClick={handleBack}
+          className="flex items-center text-green-500 mb-4 hover:text-green-700 transition-colors duration-300"
+        >
+          <ArrowLeft size={24} className="mr-2" />
+          Back
+        </button>
+        <div className="bg-white rounded-lg shadow-md p-6 flex-grow overflow-hidden">
+          <h1 className="text-3xl font-bold mb-4">{selectedCaseStudy.name}</h1>
+          <iframe
+            src={`/api?filename=${selectedCaseStudy.filename}`}
+            className="w-full h-full border-none"
+            title={selectedCaseStudy.name}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -270,7 +347,43 @@ const Dashboard = () => {
             <p>{t("p2")}</p>
           </section>
 
-          <section className="case-studies"></section>
+          <section className="case-studies mx-10">
+            <Carousel responsive={responsive}>
+              {filteredCaseStudies.slice(0, 6).map((study) => (
+                <div
+                  key={study.id}
+                  className="bg-white p-4 rounded-lg border-4 shadow-md cursor-pointer hover:shadow-2xl transition-shadow duration-300 case-study"
+                  onClick={() => handleCaseStudyClick(study)}
+                >
+                  <div className="flex items-center justify-center mb-4">
+                    <FileText size={48} className="text-green-500" />
+                    <FileText size={48} className="text-teal-400 -ml-6" />
+                    <FileText
+                      size={48}
+                      className="text-green-700 -ml-6 rotate-6"
+                    />
+                  </div>
+                  <h3 className="font-bold text-lg text-center mb-2">
+                    {study.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm text-center mb-2">
+                    {study.description}
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <p className="text-sm text-gray-500">Tags:</p>
+                    {study.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </Carousel>
+          </section>
         </div>
       </div>
     </>
